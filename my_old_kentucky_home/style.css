@@ -1,1 +1,11 @@
 /*Created by: Isabelle Sennett*/
+
+body {
+    background-color: #99ebff;
+    text-align: center 
+}
+
+img {
+    width: auto;
+    height: 240px;
+}
