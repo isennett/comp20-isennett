@@ -1,0 +1,12 @@
+/*created by Isabelle Sennett March 13, 2016*/
+html { 
+    height: 100%
+}
+body { 
+    height: 100%;
+    margin: 0px;
+    padding: 0px
+}
+#map { 
+    height: 100%
+}

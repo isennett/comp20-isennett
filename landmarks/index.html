@@ -1,1 +1,97 @@
+<!DOCTYPE html>
 <!-- created by Isabelle Sennett March 13, 2016 -->
+<!-- lots of code from Ming's examples -->
+<html>
+
+    <head>
+        <title>Historic Landmarks</title>
+        <meta name="viewport" content="initial-scale=1.0" />
+        <meta charset="utf-8">
+        <script src="https://maps.google.com/maps/api/js"></script>
+        <link rel="stylesheet" href="style.css" />
+        <script>
+            var myLat = 0;
+            var myLng = 0;
+            var login = "PAULETTE_BULLOCK";
+            var request = new XMLHttpRequest();
+            var me = new google.maps.LatLng(myLat, myLng);
+            var myOptions = {
+                        zoom: 13, // The larger the zoom number, the bigger the zoom
+                        center: me,
+                        mapTypeId: google.maps.MapTypeId.ROADMAP
+                    };
+            var map;
+            var meMarker;
+            var peopleMarker;
+            var landMarker;
+            var infowindow = new google.maps.InfoWindow();
+
+            function init()
+            {
+                map = new google.maps.Map(document.getElementById("map"), myOptions);
+                getMyLocation();
+            }
+
+            function getMyLocation() {
+                console.log("in get my location")
+                if (navigator.geolocation) { // the navigator.geolocation object is supported on your browser
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        myLat = position.coords.latitude;
+                        myLng = position.coords.longitude;
+                        request.open("POST", "https://defense-in-derpth.herokuapp.com/sendLocation", true);
+                        request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                        console.log("pre readyState")
+                        request.onreadystatechange = function() {
+                            if (request.readyState == 4 && request.status == 200){
+                                console.log("Got the data back!");
+                                data = request.responseText;
+                                loc = JSON.parse(data);
+                                console.log(loc);
+                            }
+                            else if (request.readyState == 4 && request.status != 200) {
+                                document.getElementById("messages").innerHTML = "<p>Whoops, #fail</p>";
+                            }
+                        };
+                        request.send("login="+login+"&lat="+myLat+"&lng="+myLng)
+                        console.log("after request.send")
+                        renderMap();
+                    }); 
+                }
+                else {
+                    alert("Geolocation is not supported by your web browser.  What a shame!");
+                }
+            }
+
+            function renderMap()
+            {
+                console.log(myLat);
+                console.log(myLng);
+                me = new google.maps.LatLng(myLat, myLng);
+                console.log(me);
+                // Update map and go there...
+                map.panTo(me);
+                markMe();
+            }
+
+            function markMe(){
+                // Create a marker for me
+                meMarker = new google.maps.Marker({
+                    position: me,
+                    title: "Here I Am!"
+                });
+                meMarker.setMap(map);
+                    
+                // Open info window on click of marker for me
+                google.maps.event.addListener(meMarker, 'click', function() {
+                    infowindow.setContent(meMarker.title);
+                    infowindow.open(map, meMarker);
+                });
+            }
+            
+        </script>
+    </head>
+    
+    <body onload="init()">
+        <div id="map"></div>
+    </body>
+</html>
