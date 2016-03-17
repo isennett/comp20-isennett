@@ -2,7 +2,6 @@
 <!-- created by Isabelle Sennett March 13, 2016 -->
 <!-- lots of code from Ming's examples -->
 <html>
-
     <head>
         <title>Historic Landmarks</title>
         <meta name="viewport" content="initial-scale=1.0" />
@@ -12,49 +11,55 @@
         <script>
             var myLat = 0;
             var myLng = 0;
-            var login = "PAULETTE_BULLOCK";
+            var myLogin = "PAULETTE_BULLOCK";
+
             var request = new XMLHttpRequest();
+            //break down the data received from the server into people and landmarks
+            var peopleData;
+            var landmarkData;
+
+            // these are for the closest landmark
+            var cName = " "
+            var cDistance = 10; //we know for sure that it will be under 1 mile but I'm giving lots of leeway
+            var cLat = 0;
+            var cLng = 0;
+
             var me = new google.maps.LatLng(myLat, myLng);
-            var myOptions = {
-                        zoom: 13, // The larger the zoom number, the bigger the zoom
+            var mapOptions = {
+                        zoom: 15, // The larger the zoom number, the bigger the zoom
                         center: me,
                         mapTypeId: google.maps.MapTypeId.ROADMAP
-                    };
-            var map;
-            var meMarker;
-            var peopleMarker;
-            var landMarker;
+            };
+            var map; 
             var infowindow = new google.maps.InfoWindow();
 
-            function init()
-            {
-                map = new google.maps.Map(document.getElementById("map"), myOptions);
-                getMyLocation();
-            }
+            var meMarkerIcon = "me.png";
+            var peopleMarkerIcon = "people.png";
+            var landMarkerIcon = "landmark.png";
 
-            function getMyLocation() {
-                console.log("in get my location")
+            var meContentString = '';
+
+            function getLocations() {
+                map = new google.maps.Map(document.getElementById("map"), mapOptions);
                 if (navigator.geolocation) { // the navigator.geolocation object is supported on your browser
                     navigator.geolocation.getCurrentPosition(function(position) {
                         myLat = position.coords.latitude;
                         myLng = position.coords.longitude;
                         request.open("POST", "https://defense-in-derpth.herokuapp.com/sendLocation", true);
                         request.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-                        console.log("pre readyState")
                         request.onreadystatechange = function() {
                             if (request.readyState == 4 && request.status == 200){
-                                console.log("Got the data back!");
                                 data = request.responseText;
-                                loc = JSON.parse(data);
-                                console.log(loc);
+                                locations = JSON.parse(data);
+                                peopleData = locations.people;
+                                landmarkData = locations.landmarks;
+                                renderDetails();
                             }
                             else if (request.readyState == 4 && request.status != 200) {
                                 document.getElementById("messages").innerHTML = "<p>Whoops, #fail</p>";
                             }
                         };
-                        request.send("login="+login+"&lat="+myLat+"&lng="+myLng)
-                        console.log("after request.send")
-                        renderMap();
+                        request.send("login="+myLogin+"&lat="+myLat+"&lng="+myLng)
                     }); 
                 }
                 else {
@@ -62,36 +67,105 @@
                 }
             }
 
-            function renderMap()
+            function renderMe(meContentString)
             {
-                console.log(myLat);
-                console.log(myLng);
                 me = new google.maps.LatLng(myLat, myLng);
-                console.log(me);
-                // Update map and go there...
-                map.panTo(me);
-                markMe();
-            }
-
-            function markMe(){
-                // Create a marker for me
-                meMarker = new google.maps.Marker({
+                map.panTo(me); // Update map and center on my location
+                var meMarker = new google.maps.Marker({
                     position: me,
-                    title: "Here I Am!"
+                    icon: meMarkerIcon,
+                    title: meContentString
                 });
-                meMarker.setMap(map);
-                    
+                meMarker.setMap(map); 
                 // Open info window on click of marker for me
                 google.maps.event.addListener(meMarker, 'click', function() {
                     infowindow.setContent(meMarker.title);
                     infowindow.open(map, meMarker);
                 });
             }
-            
+
+            function renderDetails()
+            {
+                for (i = 0; i < peopleData.length; i++) {
+                    var personLogin = peopleData[i].login;
+                    if(personLogin!=myLogin){
+                        var personLat = peopleData[i].lat;
+                        var personLng = peopleData[i].lng;
+                        var personDistance = calcDistanceBetweenPoints(personLat, personLng);
+                        var contentString = '<div id="content">'+'<p>'+'<b>'+personLogin+'</b>'+'<BR>'+'Distance: '+personDistance+"(mi)"+'</p>'+'</div>';
+                        person = new google.maps.LatLng(personLat, personLng);
+                        peopleMarker = new google.maps.Marker({
+                            position: person,
+                            icon: peopleMarkerIcon,
+                            title: contentString
+                        });
+                        peopleMarker.setMap(map);
+                        google.maps.event.addListener(peopleMarker, 'click', function() {
+                            infowindow.setContent(this.title)
+                            infowindow.open(map, this);
+                        });
+                    }
+                }
+                for (i = 0; i < landmarkData.length; i++) {
+                    var landmarkName = landmarkData[i].properties.Location_Name;
+                    var landmarkDetails = landmarkData[i].properties.Details;
+                    var landmarkLat = landmarkData[i].geometry.coordinates[1];
+                    var landmarkLng = landmarkData[i].geometry.coordinates[0];
+                    var landmarkDistance = calcDistanceBetweenPoints(landmarkLat, landmarkLng);
+                    if(landmarkDistance<cDistance){
+                        cName = landmarkName;
+                        cDistance = landmarkDistance;
+                        cLat = landmarkLat;
+                        cLng = landmarkLng;
+                        meContentString = '<div id="content">'+'<p>'+'<b>'+myLogin+'</b>'+'<BR>'+'Closest Landmark: '+landmarkName+'<BR>'+'Distance: '+landmarkDistance+"(mi)"+'</p>'+'</div>';
+                    };
+                    place = new google.maps.LatLng(landmarkLat, landmarkLng);
+                    placeMarker = new google.maps.Marker({
+                        position: place,
+                        icon: landMarkerIcon,
+                        title: landmarkDetails
+                    });
+                    placeMarker.setMap(map); 
+                    google.maps.event.addListener(placeMarker, 'click', function() {
+                        infowindow.setContent(this.title)
+                        infowindow.open(map, this);
+                    });
+                }
+                //Polyline
+                var lineCoordinates = [
+                    {lat:myLat, lng:myLng},
+                    {lat:cLat, lng:cLng}
+                ]
+                var line = new google.maps.Polyline({
+                    path: lineCoordinates,
+                    geodesic: true,
+                    strokeColor: '#7300e6',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2
+                });
+                line.setMap(map);
+                renderMe(meContentString);
+            }
+
+            function calcDistanceBetweenPoints(p2Lat, p2Lng)
+            {
+                var R = 6371; // km
+                var x1 = p2Lat - myLat;
+                var dLat = x1 * Math.PI / 180;
+                var x2 = p2Lng - myLng;
+                var dLon = x2 * Math.PI / 180;
+                var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(myLat*Math.PI/180) * Math.cos(p2Lat*Math.PI/180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                var d = R * c;
+                return d / 1.60934;
+            }
+
         </script>
     </head>
     
-    <body onload="init()">
+    <body onload="getLocations()">
         <div id="map"></div>
     </body>
 </html>
