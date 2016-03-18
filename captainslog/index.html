@@ -1,12 +1,30 @@
 <!DOCTYPE html>
-
+<!-- code doesnt work -->
 <html>
 
 <head>
     <title>Captain's Log</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
     <script>
-      // Your work will be done here...
+      $(document).ready(function(){   
+            $( "input[type='text']" ).change(function() {
+                function reload() {
+                    elem = document.getElementById("log");
+                    output = "";
+                    for (key in localStorage) {
+                        output = output + "<p>" + localStorage[key] + "</p>\n";
+                    }
+                    elem.innerHTML = output;
+                }
+                function store() {
+                    date = new Date();
+                    txt = date+' - '+document.getElementById("msg").value;
+                    localStorage[new Date().getTime()] = txt;
+                    reload();
+                }
+
+            });
+        });
     </script>
 </head>
 
