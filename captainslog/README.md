@@ -2,8 +2,8 @@ Lab 7: Captain's Log
 March 16, 2016  
 Isabelle Sennett
 
-I think I am on the right track but i cant get it to work.
+Everything now works.
 
-spent ~1hr
+spent ~2hr
 
-did not collaborate with anyone
+Thanks to Spencer Schoeben for help
